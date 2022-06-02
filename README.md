@@ -1,0 +1,1 @@
+Things from me tryna learn rust. Have linked to resources (if any) I have used in the READMEs of the repspective directories (each created with `cargo new`). Do let me know if I have forgotten for any.
