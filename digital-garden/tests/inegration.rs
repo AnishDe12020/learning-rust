@@ -21,9 +21,7 @@ fn test_write_help() -> Result<()> {
     Ok(())
 }
 
-#[test]
-// run write to see if the command works
-fn test_write() {
+fn setup_command() -> (Command, assert_fs::TempDir) {
     let temp_dir = assert_fs::TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("garden").unwrap();
@@ -34,9 +32,17 @@ fn test_write() {
     if !fake_editor_path.exists() {
         panic!("fake editor shell script not found");
     }
+
+    cmd.env("EDITOR", fake_editor_path.into_os_string())
+        .env("GARDEN_PATH", temp_dir.path());
+    (cmd, temp_dir)
+}
+
+#[test]
+fn test_write_with_title() {
+    let (mut cmd, temp_dir) = setup_command();
+
     let assert = cmd
-        .env("GARDEN_PATH", temp_dir.path())
-        .env("EDITOR", fake_editor_path.into_os_string())
         .arg("write")
         .arg("-t")
         .arg("atitle")
@@ -47,5 +53,18 @@ fn test_write() {
 
     temp_dir
         .child("atitle.md")
+        .assert(predicate::path::exists());
+}
+
+#[test]
+fn test_write_with_written_title() {
+    let (mut cmd, temp_dir) = setup_command();
+
+    let assert = cmd.arg("write").write_stdin("N\n".as_bytes()).assert();
+
+    assert.success();
+
+    temp_dir
+        .child("testing.md")
         .assert(predicate::path::exists());
 }
