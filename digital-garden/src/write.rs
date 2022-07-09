@@ -1,6 +1,7 @@
 use color_eyre::eyre::{Result, WrapErr};
 use edit::{edit_file, Builder};
 use std::{
+    fs,
     io::{Read, Seek, SeekFrom, Write},
     os::linux::raw,
     path::PathBuf,
@@ -18,7 +19,7 @@ pub fn write(garden_path: PathBuf, title: Option<String>) -> Result<()> {
         .wrap_err("Failed to keep temp file")?;
     file.write_all(TEMPLATE)?;
 
-    edit_file(filepath)?;
+    edit_file(&filepath)?;
 
     let mut contents = String::new();
     file.seek(SeekFrom::Start(0))?;
@@ -34,11 +35,33 @@ pub fn write(garden_path: PathBuf, title: Option<String>) -> Result<()> {
     let filename = match document_title {
         Some(raw_title) => confirm_filename(&raw_title),
         None => ask_for_filename(),
-    };
+    }?;
 
-    dbg!(contents, filename);
+    let mut i: usize = 0;
 
-    todo!()
+    loop {
+        let dest_filename = format!(
+            "{}{}",
+            filename,
+            if i == 0 {
+                "".to_string()
+            } else {
+                i.to_string()
+            }
+        );
+
+        let mut dest = garden_path.join(dest_filename);
+        dest.set_extension("md");
+
+        if dest.exists() {
+            i += 1;
+        } else {
+            fs::rename(filepath, &dest)?;
+            break;
+        }
+    }
+
+    Ok(())
 }
 
 fn ask_for_filename() -> Result<String> {
