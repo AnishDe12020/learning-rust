@@ -1,7 +1,7 @@
 use color_eyre::eyre::{Result, WrapErr};
 use edit::{edit_file, Builder};
 use std::{
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
 
@@ -20,9 +20,17 @@ pub fn write(garden_path: PathBuf, title: Option<String>) -> Result<()> {
     edit_file(filepath)?;
 
     let mut contents = String::new();
+    file.seek(SeekFrom::Start(0))?;
     file.read_to_string(&mut contents)?;
 
-    dbg!(contents);
+    let document_title = title.or_else(|| {
+        contents
+            .lines()
+            .find(|line| line.starts_with("# "))
+            .map(|maybe_line| maybe_line.trim_start_matches("# ").to_string())
+    });
+
+    dbg!(contents, document_title);
 
     todo!()
 }
